@@ -1,6 +1,6 @@
 use chrono::Datelike;
 use std::io::Read;
-use wasmi::{ImportsBuilder, ModuleInstance, NopExternals, RuntimeValue};
+use wasmi::{ImportsBuilder, ModuleInstance, NopExternals, RuntimeValue, Signature, ValueType};
 
 fn print_usage() {
     println!("Usage: wasm-runner path/to/file.wasm");
@@ -50,6 +50,51 @@ fn main() {
 
 fn get_current_year() -> i32 {
     chrono::Local::now().year()
+}
+
+// index value used to identify the get_current_value.
+// Can be any number, as long as it is consistent between the TimeProvider and
+// the TimeProviderResolver.
+const GET_CURRENT_YEAR_INDEX: usize = 0;
+
+struct TimeProvider {}
+
+impl wasmi::Externals for TimeProvider {
+    fn invoke_index(
+        &mut self,
+        index: usize,
+        _args: wasmi::RuntimeArgs,
+    ) -> Result<Option<RuntimeValue>, wasmi::Trap> {
+        match index {
+            GET_CURRENT_YEAR_INDEX => {
+                let year = get_current_year();
+                Ok(Some(RuntimeValue::I32(year)))
+            }
+            _ => panic!("unknown function index"),
+        }
+    }
+}
+
+struct TimeProviderResolver {}
+
+impl wasmi::ModuleImportResolver for TimeProviderResolver {
+    fn resolve_func(
+        &self,
+        field_name: &str,
+        _signature: &wasmi::Signature,
+    ) -> Result<wasmi::FuncRef, wasmi::Error> {
+        // identify the desired function by name and return its signature
+        // and the numerical index
+        match field_name {
+            "get_current_year" => Ok(wasmi::FuncInstance::alloc_host(
+                Signature::new(&[][..], Some(ValueType::I32)),
+                GET_CURRENT_YEAR_INDEX,
+            )),
+            _ => Err(wasmi::Error::Instantiation(
+                "unknown host function".to_string(),
+            )),
+        }
+    }
 }
 
 #[cfg(test)]
