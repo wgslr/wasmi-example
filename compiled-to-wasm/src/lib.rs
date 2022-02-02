@@ -1,4 +1,5 @@
 // declare functions which we expect to be provided by the runtime
+#[link(wasm_import_module = "time-provider")]
 extern "C" {
     fn get_current_year() -> i32;
 }

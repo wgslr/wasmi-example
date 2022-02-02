@@ -1,3 +1,4 @@
+use chrono::Datelike;
 use std::io::Read;
 use wasmi::{ImportsBuilder, ModuleInstance, NopExternals, RuntimeValue};
 
@@ -45,4 +46,18 @@ fn main() {
         Some(_) => panic!("is_leap_year returned a value of unexpected type"),
         None => panic!("is_leap_year did not return a value"),
     };
+}
+
+fn get_current_year() -> i32 {
+    chrono::Local::now().year()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_current_year() {
+        assert_eq!(get_current_year(), 2022);
+    }
 }
